@@ -48,7 +48,7 @@ class Button:
                         self.function(**self.args)
 
     def show(self):
-        draw_box(screen, self.rect, self.background)
+        draw_box(self.rect, self.background)
         rendered_text = font_medium.render(self.text, True, "#A5C9CA")
         displace_h = rendered_text.get_bounding_rect()[2] // 2
         displace_v = rendered_text.get_bounding_rect()[3] // 2
@@ -62,7 +62,7 @@ class Button:
         else:
             self.background = "#202020"
 
-def draw_box(screen, rect, background):
+def draw_box(rect, background):
     pygame.draw.rect(
         screen,
         background,
@@ -79,14 +79,14 @@ def update_UI(game):
     cubics_label = font_big.render("Cubics", True, '#A5C9CA')
     screen.blit(cubics_label, [(width // 2) - 60, 30])
 
-    draw_box(screen, [game.x + game.width * game.zoom + 50, game.y + 50, 260, 50], "#202020")
+    draw_box([game.x + game.width * game.zoom + 50, game.y + 50, 260, 50], "#202020")
     score_text = font_medium.render("Score", True, '#A5C9CA')
     score_points = font_medium.render(str(game.score),True, "#A5C9CA")
     screen.blit(score_text, [game.x + game.width * game.zoom + 140, game.y + 8])
     screen.blit(score_points, [game.x + game.width * game.zoom + 60, game.y + 58])
         
     label = font_medium.render("Next Shape", True, '#A5C9CA')        
-    draw_box(screen,[game.x + game.width * game.zoom + 50, game.y + 199, 260, 300], "#202020")
+    draw_box([game.x + game.width * game.zoom + 50, game.y + 199, 260, 300], "#202020")
     screen.blit(label, [game.x + game.width * game.zoom + 100, game.y + 148])    
         
     sy =  game.x + game.width * game.zoom + 180 - ((game.next_block.width * 50) // 2)
@@ -116,9 +116,27 @@ def update_field_UI(game):
         for i in range(game.height):
             for j in range(game.width):
                 pygame.draw.rect(screen, '#202020', [game.x + game.zoom * j, game.y + game.zoom * i, game.zoom, game.zoom], 1)
-                if game.field[i][j] > 0:
+                if 0 < game.field[i][j] < 10:
                     pygame.draw.rect(screen, colors[game.field[i][j]],
                                      [game.x + game.zoom * j + 1, game.y + game.zoom * i + 1, game.zoom - 1, game.zoom - 1])
+
+
+def display_game_over(game):
+
+    draw_box([50,100, width-100, height-200], "#2C3333")
+    button1 = Button(pygame.Rect(70, height - 190, 120, 70), "Replay", game.__init__,kwargs={"width": 10, "height": 20})
+    button1.on_hover()
+    game_over_txt = font_bigger.render("Game Over", True, '#A5C9CA')
+    screen.blit(game_over_txt, [width//2 - game_over_txt.get_bounding_rect()[2]//2, 120])
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            return True
+        button1.on_click(event)
+
+    button1.show()
+    return False
+
 
 #regular game
 def start_game():    
@@ -129,90 +147,59 @@ def start_game():
     counter = 0
 
     while not done:
+        if game.state == "start":
+            #checks for current block to be initialized
+            if game.current_block is None:
+                game.gen_new_block()
+            if game.next_block is None:
+                game.gen_next_block()
         
-        #checks for current block to be initialized
-        if game.current_block is None:
-            game.gen_new_block()
-        if game.next_block is None:
-            game.gen_next_block()
+            #keep track of time
+            counter += 1 
+            if counter > 100000:
+                counter = 0
+
+            #move piece down based on level
+            if counter % (fps // game.level // 2) == 0:
+                if game.state == "start":
+                    game.move_down() 
         
-        #keep track of time
-        counter += 1 
-        if counter > 100000:
-            counter = 0
+            #event handling
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        game.rotate()
+                    if event.key == pygame.K_LEFT:
+                        game.move_hor(-1)
+                    if event.key == pygame.K_RIGHT:
+                        game.move_hor(1)
+                    if event.key == pygame.K_ESCAPE:
+                        game.__init__(20, 10)
 
-        #move piece down based on level
-        if counter % (fps // game.level // 2) == 0:
-            if game.state == "start":
-                game.move_down() 
-        
-        #event handling
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    game.rotate()
-                if event.key == pygame.K_LEFT:
-                    game.move_hor(-1)
-                if event.key == pygame.K_RIGHT:
-                    game.move_hor(1)
-                if event.key == pygame.K_ESCAPE:
-                    game.__init__(20, 10)
+                    #UI updates
+            update_field_UI(game)        
+            update_UI(game)        
 
-        if game.state == "game over":
-            pygame.quit()
+        else:
+            done = display_game_over(game)
 
-        #UI updates
-        update_field_UI(game)        
-        update_UI(game)        
         pygame.display.flip()
         clock.tick(fps)
 
-#just for testing
-def load_data():
-    
-    instance_path = 'ins-39.txt'
+        
 
-    file = open(instance_path, 'r')
-    lines = file.readlines()
-    count = 0
-    widths = []
-    heights = []
-
-    for line in lines:
-
-        if count == 0:
-            w = int(line)
-
-        elif count == 1:
-            n = int(line)
-
-        else:
-            chip_wh = line.split()
-            widths.append(int(chip_wh[0]))
-            heights.append(int(chip_wh[1]))
-
-        count += 1
-
-    return w, n, widths, heights
 
 #send the informations to the minizinc solver
 def solve(return_storing):
-    model = minizinc.Model(os.path.join(
-        os.path.dirname("__file__"),
-        'MODEL_STD.mzn'
-    ))
-    w, n, widths, heights = load_data()
+    model = minizinc.Model()
     solver = minizinc.Solver.lookup('chuffed')
     inst = minizinc.Instance(solver, model)
-    inst["w"] = w
-    inst["n"] = n
-    inst["widths"] =widths
-    inst["heights"] = heights
 
     out = inst.solve(timeout=timedelta(seconds=300), free_search=True)
     return_storing["solutions"] = out.solution
+
 
 #automatic computer playing
 def start_game_solver():
@@ -227,51 +214,45 @@ def start_game_solver():
     thread = threading.Thread(target = solve, args=(return_storing,))
     thread.start()
     while not done:
+        if game.state == "start":
+            #checks for current block to be initialized
+            if game.current_block is None:
+                game.gen_new_block()
+            if game.next_block is None:
+                game.gen_next_block()
         
-        #checks for current block to be initialized
-        if game.current_block is None:
-            game.gen_new_block()
-        if game.next_block is None:
-            game.gen_next_block()
+            #keep track of time
+            counter += 1 
+            if counter > 100000:
+                counter = 0
+
+            #move piece down based on level
+            if counter % (fps // game.level // 2) == 0:
+                if game.state == "start":
+                    game.move_down() 
         
-        #keep track of time
-        counter += 1 
-        if counter > 100000:
-            counter = 0
+            #event handling
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
 
-        #move piece down based on level
-        if counter % (fps // game.level // 2) == 0:
-            if game.state == "start":
-                game.move_down() 
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    game.rotate()
-                if event.key == pygame.K_LEFT:
-                    game.move_hor(-1)
-                if event.key == pygame.K_RIGHT:
-                    game.move_hor(1)
-                if event.key == pygame.K_ESCAPE:
-                    game.__init__(20, 10)
-        
-        #todo minizinc solver
-        if not thread.is_alive(): 
-            print(return_storing["solutions"]) 
+            if not thread.is_alive(): 
+                print(return_storing["solutions"]) 
 
-            #update view
+                #update view
 
-            thread = threading.Thread(target=solve, args=(return_storing, ))
-            thread.start()
+                thread = threading.Thread(target=solve, args=(return_storing, ))
+                thread.start()
 
-        #UI updates
-        update_field_UI(game)
-        update_UI(game)        
+            #UI updates
+            update_field_UI(game)        
+            update_UI(game)        
+
+        else:
+            display_game_over(game)
+
         pygame.display.flip()
         clock.tick(fps)
-
 
 
 run = True

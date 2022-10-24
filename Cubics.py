@@ -70,13 +70,16 @@ class Cubics:
     y = 120
     zoom = 25
     field = []
-    current_block = None
-    next_block = None
-    blocks = []
 
     def __init__(self, width, height):
         self.height = height
-        self.width = width     
+        self.width = width  
+        self.state = "start"   
+        self.score = 0
+        self.blocks = []
+        self.current_block = None
+        self.next_block = None
+        self.update_field()
     
     #generates a new block
     def gen_new_block(self):
@@ -95,6 +98,7 @@ class Cubics:
         )
         self.blocks.append(self.current_block)
         self.update_field()
+        
     
     #generate next block
     def gen_next_block(self):
@@ -110,6 +114,10 @@ class Cubics:
             randint(min_color_key, max_color_key),
             (self.width, self.height)
         )
+
+    def remove_current_block(self):
+        self.blocks.remove(self.current_block)
+        self.update_field()
     
     #update matrix
     def update_field(self):
@@ -200,7 +208,9 @@ class Cubics:
         self.gen_next_block()
         self.blocks.append(self.current_block)
         if self.check_sides():
-            self.state = "Game Over"
+            self.remove_current_block()
+            self.current_block = None
+            self.state = "game over"
 
 
 
