@@ -206,8 +206,6 @@ def solve(return_storing, game):
     blocks_h = [block.height for block in temp_blocks]
     widths = [game.current_block.width, game.next_block.width]
     heights = [game.current_block.height, game.next_block.height]
-    print(widths)
-    print(heights)
     
     model = minizinc.Model('SOLVER.mzn')
     solver = minizinc.Solver.lookup('chuffed')
@@ -220,7 +218,6 @@ def solve(return_storing, game):
     inst["pos_y_full"] = pos_y
     inst["widths"] = widths
     inst["heights"] = heights 
-    inst["field"] = field 
 
     out = inst.solve(timeout=timedelta(seconds=300), free_search=True)
     return_storing["solutions"] = out.solution
