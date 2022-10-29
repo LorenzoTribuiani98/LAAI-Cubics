@@ -1,5 +1,6 @@
 from random import randint
 import numpy as np
+from copy import deepcopy
 
 #GLOBAL VARIABLE DECLARATIONS
 #---------------------------------
@@ -51,6 +52,11 @@ class Block:
         temp = self.width
         self.width = self.height
         self.height = temp
+        self.update_field()
+
+    def move_to(self, x, y):
+        self.x = x
+        self.y = y
         self.update_field()
 
     def update_field(self):
@@ -169,6 +175,12 @@ class Cubics:
             self.current_block.rotate() 
             self.update_field()
 
+    def move_to(self,x, y):
+        self.current_block.move_to(x,y)
+        self.update_field()
+        self.freeze()
+        
+
     #check for lines deletion
     def check_lines(self):
         lines = []
@@ -211,6 +223,27 @@ class Cubics:
             self.remove_current_block()
             self.current_block = None
             self.state = "game over"
+
+    def get_y_positions(self):
+        y_pos = []
+        temp_field = self.field - self.current_block.field_view
+        temp_field[temp_field < 0] = 0
+        for i in range(10):
+            for j in range(20):
+                if temp_field[j][i] != 0:
+                    y_pos.append(19 - j + 1)
+                    break
+                elif temp_field[j][i] == 0 and j == 19:
+                    y_pos.append(0)
+
+        return y_pos
+
+    def get_normalized_field(self):
+        field = deepcopy(self.field)
+        field -= self.current_block.field_view
+        field[field < 0] = 0
+        field[field > 0] = 1
+        return field
 
 
 

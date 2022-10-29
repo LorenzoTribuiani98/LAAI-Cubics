@@ -4,6 +4,7 @@ import minizinc
 from datetime import timedelta
 import os
 import threading
+from copy import deepcopy
 
 width = 700
 height = 650
@@ -192,10 +193,34 @@ def start_game():
 
 
 #send the informations to the minizinc solver
-def solve(return_storing):
-    model = minizinc.Model()
+def solve(return_storing, game):
+    
+    temp_blocks = deepcopy(game.blocks)
+    temp_blocks.pop()
+    field = game.get_normalized_field()
+    n = len(game.blocks) - 1
+    pos_y = game.get_y_positions()
+    blocks_x = [block.x + 1 for block in temp_blocks]
+    blocks_y = [(19 - block.y - block.height + 1) for block in temp_blocks]
+    blocks_w = [block.width for block in temp_blocks]
+    blocks_h = [block.height for block in temp_blocks]
+    widths = [game.current_block.width, game.next_block.width]
+    heights = [game.current_block.height, game.next_block.height]
+    print(widths)
+    print(heights)
+    
+    model = minizinc.Model('SOLVER.mzn')
     solver = minizinc.Solver.lookup('chuffed')
     inst = minizinc.Instance(solver, model)
+    inst["n"] = n
+    inst["blocks_x"] = blocks_x
+    inst["blocks_y"] = blocks_y
+    inst["blocks_w"] = blocks_w
+    inst["blocks_h"] = blocks_h
+    inst["pos_y_full"] = pos_y
+    inst["widths"] = widths
+    inst["heights"] = heights 
+    inst["field"] = field 
 
     out = inst.solve(timeout=timedelta(seconds=300), free_search=True)
     return_storing["solutions"] = out.solution
@@ -207,20 +232,16 @@ def start_game_solver():
     clock = pygame.time.Clock()
     fps = 25
     game = Cubics(10,20)
+    game.gen_new_block()
+    game.gen_next_block()
     counter = 0
     return_storing = {}
     
     #creates the main thread for solving and start it
-    thread = threading.Thread(target = solve, args=(return_storing,))
+    thread = threading.Thread(target = solve, args=(return_storing, game))
     thread.start()
     while not done:
-        if game.state == "start":
-            #checks for current block to be initialized
-            if game.current_block is None:
-                game.gen_new_block()
-            if game.next_block is None:
-                game.gen_next_block()
-        
+        if game.state == "start":        
             #keep track of time
             counter += 1 
             if counter > 100000:
@@ -237,11 +258,17 @@ def start_game_solver():
                     done = True
 
             if not thread.is_alive(): 
-                print(return_storing["solutions"]) 
+                print(return_storing["solutions"])
+                x = return_storing["solutions"].pos_x[0] 
+                rotate = return_storing["solutions"].rotations[0]
+                if rotate:
+                    game.rotate()
+                y = abs(return_storing["solutions"].pos_y[0] - 19) - game.current_block.height + 1
+                game.move_to(x,y) 
 
                 #update view
 
-                thread = threading.Thread(target=solve, args=(return_storing, ))
+                thread = threading.Thread(target=solve, args=(return_storing, game))
                 thread.start()
 
             #UI updates
@@ -249,7 +276,10 @@ def start_game_solver():
             update_UI(game)        
 
         else:
-            display_game_over(game)
+            #display_game_over(game)
+            
+            print(game.score)
+            pygame.quit()
 
         pygame.display.flip()
         clock.tick(fps)
