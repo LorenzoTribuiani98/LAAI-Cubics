@@ -194,6 +194,10 @@ def start_game():
 
 #send the informations to the minizinc solver
 def solve(return_storing, game):
+    model_path = os.path.join(
+        os.path.dirname(__file__),
+        "SOLVER.mzn"
+    )
     
     temp_blocks = deepcopy(game.blocks)
     temp_blocks.pop()
@@ -207,7 +211,7 @@ def solve(return_storing, game):
     widths = [game.current_block.width, game.next_block.width]
     heights = [game.current_block.height, game.next_block.height]
     
-    model = minizinc.Model('SOLVER.mzn')
+    model = minizinc.Model(model_path)
     solver = minizinc.Solver.lookup('chuffed')
     inst = minizinc.Instance(solver, model)
     inst["n"] = n
