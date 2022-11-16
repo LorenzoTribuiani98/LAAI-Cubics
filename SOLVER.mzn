@@ -3,6 +3,7 @@ include "diffn.mzn";
 
 int: field_w = 10;
 int: field_h = 20;
+int: temp = 0;
 int: n;
 array[1..field_h, 1..field_w] of var 0..1: field;
 
@@ -55,8 +56,10 @@ constraint forall(
 );
 
 constraint forall(i in 1..field_h)(
-    if count(field[i,..], 1) div 10 == 1 then full_rows = full_rows + 1 endif 
+    temp = temp + count(field[i,..], 1) div 10 
 );
+
+constraint full_rows = temp;
 
 
 solve :: seq_search([
