@@ -13,7 +13,7 @@ colors = {
 }
 
 min_size = 1
-max_size = 4
+max_size = 3
 max_color_key = max(colors.keys()) 
 min_color_key = min(colors.keys())
 
@@ -68,7 +68,7 @@ class Block:
 class Cubics:
 
     state = "start"
-    level = 2
+    level = 1
     score = 0
     height = 0
     width = 0

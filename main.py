@@ -198,19 +198,18 @@ def solve(return_storing, game):
         os.path.dirname(__file__),
         "SOLVER.mzn"
     )
-    
+    pos_y = game.get_y_positions()
     temp_blocks = deepcopy(game.blocks)
     temp_blocks.pop()
-    field = game.get_normalized_field()
     n = len(game.blocks) - 1
-    pos_y = game.get_y_positions()
-    blocks_x = [block.x + 1 for block in temp_blocks]
+    
+    blocks_x = [block.x  for block in temp_blocks]
     blocks_y = [(19 - block.y - block.height + 1) for block in temp_blocks]
     blocks_w = [block.width for block in temp_blocks]
     blocks_h = [block.height for block in temp_blocks]
     widths = [game.current_block.width, game.next_block.width]
     heights = [game.current_block.height, game.next_block.height]
-    
+
     model = minizinc.Model(model_path)
     solver = minizinc.Solver.lookup('chuffed')
     inst = minizinc.Instance(solver, model)
@@ -219,12 +218,16 @@ def solve(return_storing, game):
     inst["blocks_y"] = blocks_y
     inst["blocks_w"] = blocks_w
     inst["blocks_h"] = blocks_h
-    inst["pos_y_full"] = pos_y
     inst["widths"] = widths
-    inst["heights"] = heights 
-
+    inst["heights"] = heights
+    
+    
     out = inst.solve(timeout=timedelta(seconds=300), free_search=True)
-    return_storing["solutions"] = out.solution
+    
+    return_storing["pos_x"] = out.solution.pos_x[0]
+    return_storing["rotation"] = out.solution.rotations[0]
+    return_storing["pos_y"] = out.solution.pos_y[0] - 19
+
 
 
 #automatic computer playing
@@ -259,12 +262,11 @@ def start_game_solver():
                     done = True
 
             if not thread.is_alive(): 
-                print(return_storing["solutions"])
-                x = return_storing["solutions"].pos_x[0] 
-                rotate = return_storing["solutions"].rotations[0]
+                x = return_storing["pos_x"]
+                rotate = return_storing["rotation"]
                 if rotate:
                     game.rotate()
-                y = abs(return_storing["solutions"].pos_y[0] - 19) - game.current_block.height + 1
+                y = abs(return_storing["pos_y"]) - game.current_block.height + 1
                 game.move_to(x,y) 
 
                 #update view
