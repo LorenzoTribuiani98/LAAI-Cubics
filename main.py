@@ -224,6 +224,7 @@ def solve(return_storing, game):
     
     out = inst.solve(timeout=timedelta(seconds=300), free_search=True)
     
+    #print(out.solution)
     return_storing["pos_x"] = out.solution.pos_x[0]
     return_storing["rotation"] = out.solution.rotations[0]
     return_storing["pos_y"] = out.solution.pos_y[0] - 19

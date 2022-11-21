@@ -26,10 +26,13 @@ array[new_blocks] of var int: actual_heights = [(widths[i]*rotations[i]) + heigh
 
 var 0..field_h: full_rows;
 var 0..field_w: longest_row;
+var 0..field_w*field_h: unreachable;
 var 1..field_h: h;
 
 array[new_blocks] of var 0..field_w-1: pos_x;
 array[new_blocks] of var 0..field_h-1: pos_y;
+
+array[1..3] of int: priorities = [10,5,10];
 
 constraint max(i in new_blocks)(pos_x[i] + actual_widths[i]) <= field_w;
 constraint max(i in new_blocks)(pos_y[i] + actual_heights[i]) <= h;
@@ -61,45 +64,13 @@ constraint let {array[1..field_h] of var int: lenghts = [count(field[j,..],1) | 
 
 constraint full_rows = sum([count(field[i,..], 1) div 10 == 1| i in 1..field_h]);
 
+constraint unreachable = sum(
+    [j - k+1 | i in 1..field_w, j in 1..field_h-1, k in 1..field_h-1 where j>=k /\ field[j+1,i]==1 /\ (field[k-1,i]==1 \/ k==1) /\ count(field[k..j, i], 0) == j-k+1]
+);
+
 solve :: seq_search([
     int_search(pos_x, first_fail, indomain_min),
     int_search(rotations, first_fail, indomain_min)])    
-    maximize (longest_row +full_rows + (field_h - h));
+    maximize (priorities[1]*full_rows + priorities[2]*(field_h - h) + priorities[3]*longest_row + ((field_w*field_h) - unreachable));
     
-output [
-    "full_rows = ", show(full_rows), "\n",
-    "longest_row = ", show(longest_row), "\n", 
-    "height = ", show(h), "\n",
-    "maximizing index = ", show(longest_row +full_rows + (field_h - h)), "\n",
-    "pos_x = ", show(pos_x), "\n",
-    "pos_y = ", show(pos_y), "\n",
-    "pos_y_full = ", show(pos_y_full), "\n",
-    "rotations = ", show(rotations), "\n",
-    "actual_w = ", show(actual_widths), "\n",
-    "actual_h = ", show(actual_heights), "\n",
-    "field = " ,
-    show(field[20,..]), "\n",
-    show(field[19,..]), "\n",
-    show(field[18,..]), "\n",
-    show(field[17,..]), "\n",
-    show(field[16,..]), "\n",
-    show(field[15,..]), "\n",
-    show(field[14,..]), "\n",
-    show(field[13,..]), "\n",
-    show(field[12,..]), "\n",
-    show(field[11,..]), "\n",
-    show(field[10,..]), "\n",
-    show(field[9,..]), "\n",
-    show(field[8,..]), "\n",
-    show(field[7,..]), "\n",
-    show(field[6,..]), "\n",
-    show(field[5,..]), "\n",
-    show(field[4,..]), "\n",
-    show(field[3,..]), "\n",
-    show(field[2,..]), "\n",
-    show(field[1,..]), "\n",
-]
-
-
-
-
+output ["unreachable boxes = ", show(unreachable)]
