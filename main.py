@@ -184,7 +184,8 @@ def start_game():
             update_UI(game)        
 
         else:
-            done = display_game_over(game)
+            #done = display_game_over(game)
+            print(game.score)
 
         pygame.display.flip()
         clock.tick(fps)
@@ -193,12 +194,8 @@ def start_game():
 
 
 #send the informations to the minizinc solver
-def solve(return_storing, game):
-    model_path = os.path.join(
-        os.path.dirname(__file__),
-        "SOLVER.mzn"
-    )
-    pos_y = game.get_y_positions()
+def solve(return_storing, game, solver, model):
+    
     temp_blocks = deepcopy(game.blocks)
     temp_blocks.pop()
     n = len(game.blocks) - 1
@@ -209,9 +206,7 @@ def solve(return_storing, game):
     blocks_h = [block.height for block in temp_blocks]
     widths = [game.current_block.width, game.next_block.width]
     heights = [game.current_block.height, game.next_block.height]
-
-    model = minizinc.Model(model_path)
-    solver = minizinc.Solver.lookup('chuffed')
+    
     inst = minizinc.Instance(solver, model)
     inst["n"] = n
     inst["blocks_x"] = blocks_x
@@ -219,12 +214,10 @@ def solve(return_storing, game):
     inst["blocks_w"] = blocks_w
     inst["blocks_h"] = blocks_h
     inst["widths"] = widths
-    inst["heights"] = heights
-    
+    inst["heights"] = heights    
     
     out = inst.solve(timeout=timedelta(seconds=300), free_search=True)
-    
-    #print(out.solution)
+
     return_storing["pos_x"] = out.solution.pos_x[0]
     return_storing["rotation"] = out.solution.rotations[0]
     return_storing["pos_y"] = out.solution.pos_y[0] - 19
@@ -232,61 +225,78 @@ def solve(return_storing, game):
 
 
 #automatic computer playing
-def start_game_solver():
-    done = False
-    clock = pygame.time.Clock()
-    fps = 25
-    game = Cubics(10,20)
-    game.gen_new_block()
-    game.gen_next_block()
-    counter = 0
-    return_storing = {}
-    
-    #creates the main thread for solving and start it
-    thread = threading.Thread(target = solve, args=(return_storing, game))
-    thread.start()
-    while not done:
-        if game.state == "start":        
-            #keep track of time
-            counter += 1 
-            if counter > 100000:
-                counter = 0
+def start_game_solver(counter_inn, level):
+    with open("data.csv", mode='a') as f:
+        done = False
+        clock = pygame.time.Clock()
+        fps = 25
+        game = Cubics(10,20)
+        game.gen_new_block()
+        game.gen_next_block()
+        game.level = level
+        counter = 0
+        return_storing = {}
 
-            #move piece down based on level
-            if counter % (fps // game.level // 2) == 0:
-                if game.state == "start":
-                    game.move_down() 
+        model_path = os.path.join(
+            os.path.dirname(__file__),
+            "SOLVER.mzn"
+        )
+        model = minizinc.Model(model_path)
+        solver = minizinc.Solver.lookup('chuffed')    
         
-            #event handling
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    done = True
+        #creates the main thread for solving and start it
+        thread = threading.Thread(target = solve, args=(return_storing, game, solver, model))
+        thread.start()
+        while not done:
+            if game.state == "start":        
+                #keep track of time
+                counter += 1 
+                if counter > 100000:
+                    counter = 0
 
-            if not thread.is_alive(): 
-                x = return_storing["pos_x"]
-                rotate = return_storing["rotation"]
-                if rotate:
-                    game.rotate()
-                y = abs(return_storing["pos_y"]) - game.current_block.height + 1
-                game.move_to(x,y) 
-
-                #update view
-
-                thread = threading.Thread(target=solve, args=(return_storing, game))
-                thread.start()
-
-            #UI updates
-            update_field_UI(game)        
-            update_UI(game)        
-
-        else:
-            #display_game_over(game)
+                #move piece down based on level
+                if counter % (fps // game.level // 2) == 0:
+                    if game.state == "start":
+                        game.move_down() 
             
-            print(game.score)
-            pygame.quit()
+                #event handling
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        done = True
 
-        pygame.display.flip()
-        clock.tick(fps)
+                if not thread.is_alive(): 
+                    x = return_storing["pos_x"]
+                    rotate = return_storing["rotation"]
+                    if rotate:
+                        game.rotate()
+                    y = abs(return_storing["pos_y"]) - game.current_block.height + 1
+                    game.move_to(x,y) 
+
+                    #update view
+
+                    thread = threading.Thread(target=solve, args=(return_storing, game, solver, model))
+                    thread.start()
+
+                #UI updates
+                update_field_UI(game)        
+                update_UI(game)        
+
+            else:
+                #display_game_over(game)
+                print(game.score)
+                if counter_inn+1 < 10 and level <= 4:
+                    f.write("{}, {} \n".format(game.level, game.score))
+                    f.flush()
+                    start_game_solver(counter_inn+1)
+                elif counter_inn+1 == 10 and level <= 4:
+                    f.write("{}, {} \n".format(game.level, game.score))
+                    f.flush()
+                    start_game_solver(0, game.level+1)
+                else:
+                    pygame.quit()
+
+            pygame.display.flip()
+            clock.tick(fps)
 
 
 run = True
@@ -307,7 +317,8 @@ while run:
     button2 = Button(
         pygame.Rect(width//2 - 125, 370, 250, 70), 
         "Computer",
-        start_game_solver
+        start_game_solver,
+        kwargs={"counter_inn":0, "level": 1}
     )
     button2.on_hover()
 

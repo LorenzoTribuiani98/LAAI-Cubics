@@ -68,7 +68,7 @@ class Block:
 class Cubics:
 
     state = "start"
-    level = 1
+    level = 4
     score = 0
     height = 0
     width = 0

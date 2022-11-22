@@ -54,9 +54,13 @@ constraint forall(
         <-> (field[j+1, i+1] = 1)
 );
 
-constraint pos_y_full = [find_pos_y(field[..,i], 1)| i in 1..field_w];
+constraint pos_y_full = [find_last(field[..,i], 1)| i in 1..field_w];
 
 constraint forall(i in new_blocks)(pos_y[i] = pos_y_full[pos_x[i] + 1] - actual_heights[i]);
+
+constraint (pos_x[2] in pos_x[1]..pos_x[1]+widths[1] \/
+            pos_x[2]+widths[2] in pos_x[1]..pos_x[1]+widths[1]) ->
+            pos_y[1] < pos_y[2];
 
 constraint forall(i in new_blocks)(field[pos_y[i],pos_x[i]+1] = 1 \/ pos_y[i] = 0);
 
