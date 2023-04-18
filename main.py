@@ -29,6 +29,8 @@ font_medium = pygame.font.SysFont('hpsimplified', font_medium_size, False, False
 font_big = pygame.font.SysFont('hpsimplified', font_big_size, False, False)
 font_bigger = pygame.font.SysFont('hpsimplified', font_bigger_size, True, False)
 
+##_________UI & Utils____________
+
 class Button:
 
     def __init__(self, rect, text, function, kwargs=None):
@@ -121,7 +123,6 @@ def update_field_UI(game):
                     pygame.draw.rect(screen, colors[game.field[i][j]],
                                      [game.x + game.zoom * j + 1, game.y + game.zoom * i + 1, game.zoom - 1, game.zoom - 1])
 
-
 def display_game_over(game):
 
     draw_box([50,100, width-100, height-200], "#2C3333")
@@ -190,9 +191,6 @@ def start_game():
         pygame.display.flip()
         clock.tick(fps)
 
-        
-
-
 #send the informations to the minizinc solver
 def solve(return_storing, game, solver, model):
     
@@ -221,8 +219,6 @@ def solve(return_storing, game, solver, model):
     return_storing["pos_x"] = out.solution.pos_x[0]
     return_storing["rotation"] = out.solution.rotations[0]
     return_storing["pos_y"] = out.solution.pos_y[0] - 19
-
-
 
 #automatic computer playing
 def start_game_solver(counter_inn, level):
@@ -298,7 +294,6 @@ def start_game_solver(counter_inn, level):
             pygame.display.flip()
             clock.tick(fps)
 
-
 run = True
 while run:    
     
@@ -331,7 +326,7 @@ while run:
     button1.show()
     button2.show()
 
-    bottom_page = font_small.render("Lorenzo Tribuiani | Matteo Rossi - 2022", True, "#A5C9CA")
+    bottom_page = font_small.render("Lorenzo Tribuiani | Matteo Rossi Reich - 2022", True, "#A5C9CA")
     screen.blit(bottom_page, [width//2 - bottom_page.get_bounding_rect()[2]//2, 600])
     pygame.display.update()
 pygame.quit()
