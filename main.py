@@ -313,7 +313,7 @@ while run:
         pygame.Rect(width//2 - 125, 370, 250, 70), 
         "Computer",
         start_game_solver,
-        kwargs={"counter_inn":0, "level": 1}
+        kwargs={"counter_inn":0, "level": 2}
     )
     button2.on_hover()
 
