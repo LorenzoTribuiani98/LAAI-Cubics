@@ -1,21 +1,13 @@
 from minizinc import Model, Solver, Instance
 import numpy as np
-import os
-from datetime import timedelta
+from tqdm import tqdm
+import h5py
+from Paradigms.Q_table.Q_table import *
 
-model_path = os.path.join(
-        os.path.dirname(__file__),
-        "Cube_minimizer.mzn"
-    )
+load_table()
+q_table_solve({}, [[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0]], 0)
 
-model = Model(model_path)
-solver = Solver.lookup("gecode")
-inst = Instance(solver,model)
 
-inst["cols"] = 10
-inst["rows"] = 4
-inst["field"] = np.array([1,1,1,1,1,1,0,0,0,0|1,1,1,1,1,1,0,0,0,0|1,1,1,0,1,1,0,0,0,0|1,1,1,0,1,1,0,0,0,0|]
-)
 
-out = inst.solve(timeout=timedelta(seconds=300), free_search=True)
-print(out.solution)
+
+

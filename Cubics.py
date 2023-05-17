@@ -18,8 +18,8 @@ max_color_key = max(colors.keys())
 min_color_key = min(colors.keys())
 
 
-#MAIN CLASSES
-#------------------------------------------
+# MAIN CLASSES
+# ------------------------------------------
 
 class Block:
 
@@ -46,6 +46,10 @@ class Block:
 
     def move_hor(self, value):
         self.x += value
+        self.update_field()
+
+    def move_to_x(self, x_value):
+        self.x = x_value
         self.update_field()
 
     def rotate(self):
@@ -76,6 +80,7 @@ class Cubics:
     y = 120
     zoom = 25
     field = []
+    field_no_curr = []
 
     def __init__(self, width, height):
         self.height = height
@@ -128,8 +133,15 @@ class Cubics:
     #update matrix
     def update_field(self):
         self.field = np.zeros((self.height, self.width), dtype=np.int8)
+        self.field_no_curr = np.zeros((self.height, self.width), dtype=np.int8)
         for block in self.blocks:
             self.field = self.field + block.field_view
+        for i in range(len(self.blocks) - 1):
+            self.field_no_curr += self.blocks[i].field_view
+    
+    def check_game_over(self):
+        if sum(self.field[self.field > 9]) > 0:
+            self.state = "game_over"
 
     #collision detection algorithm
     def check_sides(self):
@@ -158,6 +170,9 @@ class Cubics:
             self.current_block.move_ver(-1)
             self.update_field()
             self.freeze()
+            self.update_field()
+            return True
+        return False
 
     #move the current block horizontally
     def move_hor(self, value):
@@ -165,6 +180,13 @@ class Cubics:
         self.update_field()
         if self.check_sides():
             self.current_block.move_hor(-value)
+            self.update_field() 
+
+    def move_to_x(self, x_value):
+        self.current_block.move_to_x(x_value)
+        self.update_field()
+        if self.check_sides():
+            self.current_block.move_hor(-x_value)
             self.update_field()         
 
     #rotate the current block
@@ -183,6 +205,7 @@ class Cubics:
 
     #check for lines deletion
     def check_lines(self):
+        self.update_field()
         lines = []
         for i in range(self.height):
             if np.all(self.field[:][i]):
@@ -211,7 +234,7 @@ class Cubics:
             for i in eliminated:
                 self.blocks.remove(i)
 
-            self.update_field()        
+            self.update_field()      
 
     #check game state afert a collision
     def freeze(self):
@@ -219,10 +242,11 @@ class Cubics:
         self.current_block = self.next_block
         self.gen_next_block()
         self.blocks.append(self.current_block)
-        if self.check_sides():
-            self.remove_current_block()
-            self.current_block = None
+        if self.check_game_over():
             self.state = "game over"
+            #self.remove_current_block()
+            #self.current_block = None
+            
 
     def get_y_positions(self):
         y_pos = []

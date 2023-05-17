@@ -5,6 +5,8 @@ from datetime import timedelta
 import os
 import threading
 from copy import deepcopy
+from random import randint
+from Paradigms.Q_table.Q_table import q_table_solve, create_observation, update_q_table, save_table, load_table, compute_reward
 
 width = 700
 height = 650
@@ -220,6 +222,68 @@ def solve(return_storing, game, solver, model):
     return_storing["rotation"] = out.solution.rotations[0]
     return_storing["pos_y"] = out.solution.pos_y[0] - 19
 
+def start_q_table_solver(level):
+    print("loading table")
+    load_table(path="Paradigms/Q_table", name="Q_table_1")
+    done = False
+    clock = pygame.time.Clock()
+    fps = 50
+    game = Cubics(10,20)
+    game.gen_new_block()
+    game.gen_next_block()
+    game.level = level
+    counter = 0
+    return_storing = {}
+    
+    field_obs, block_code = create_observation(game.field_no_curr, (game.current_block.width, game.current_block.height))
+    thread = threading.Thread(target = q_table_solve, args = (return_storing, field_obs, block_code))
+    thread.start()
+    rotated = False
+    checked = False       
+
+    while not done:
+        if game.state == "start":        
+            #keep track of time
+            counter += 1 
+            if counter > 100000:
+                counter = 0
+
+            #move piece down based on level
+            if counter % (fps // game.level // 2) == 0:
+                if game.state == "start":
+                    state = game.move_down()
+                    if state:                            
+                        field_obs, block_code = create_observation(game.field_no_curr, (game.current_block.width, game.current_block.height))
+                        rotated = False
+                        checked = False
+                        thread = threading.Thread(target=q_table_solve, args=(return_storing, field_obs, block_code))
+                        thread.start()
+                        
+        
+            #event handling
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+
+            if not thread.is_alive() and not checked: 
+                x = return_storing["action"][0]
+                rotate = return_storing["action"][1]
+                if rotate and not rotated:
+                    game.rotate()
+                    rotated = True
+                game.move_to_x(x) 
+                checked=True
+
+
+            #UI updates
+            update_field_UI(game)        
+            update_UI(game)
+        else:
+            done = True
+
+        pygame.display.flip()
+        clock.tick(fps)    
+
 #automatic computer playing
 def start_game_solver(counter_inn, level):
     with open("data.csv", mode='a') as f:
@@ -312,8 +376,8 @@ while run:
     button2 = Button(
         pygame.Rect(width//2 - 125, 370, 250, 70), 
         "Computer",
-        start_game_solver,
-        kwargs={"counter_inn":0, "level": 2}
+        start_q_table_solver,
+        kwargs={"level": 10}
     )
     button2.on_hover()
 
